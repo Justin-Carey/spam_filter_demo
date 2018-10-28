@@ -9,6 +9,7 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score
 
 
+# Creates a dictionary from the emails.
 def make_dictionary(train_files):
     emails = train_files
     all_words = []
@@ -19,9 +20,11 @@ def make_dictionary(train_files):
                     words = line.split()
                     all_words += words
 
+    # Count up and remove duplicates.
     dictionary = Counter(all_words)
     list_to_remove = list(dictionary)
     for item in list_to_remove:
+        # Removes puncuation etc.
         if item.isalpha() == False:
             del dictionary[item]
         elif len(item) == 1:
@@ -30,6 +33,7 @@ def make_dictionary(train_files):
     return dictionary
 
 
+# This is where the word occurrences are counted.
 def extract_features(file_dir, dictionary):
     files = file_dir
     features_matrix = np.zeros((len(files), 3000))
@@ -49,14 +53,17 @@ def extract_features(file_dir, dictionary):
     return features_matrix
 
 
+# This method will open up a parent folder and extract the emails from each part within.
 def run_bayesian(parent_folder):
 
     folder_names = []
 
     for root, dirs, files in os.walk(parent_folder, topdown=False):
         for name in dirs:
+            # Grabs parts 1 - 10 (which will be our k fold chunks)
             folder_names.append(os.path.join(root, name))
 
+    # With parts 1-10, cycle through 10 times, each iteration choosing a different test folder.
     for i in range(len(folder_names)):
 
         test_dir = folder_names[i]
@@ -71,6 +78,7 @@ def run_bayesian(parent_folder):
         test_spam_array = []
         test_ham_array = []
 
+        # For this iteration, get numbers, and build arrays for ham and spam messages for training.
         for j in range(len(folder_names)):
             if folder_names[j] != test_dir:
                 for root, dirs, files in os.walk(folder_names[i], topdown=False):
@@ -81,6 +89,7 @@ def run_bayesian(parent_folder):
                         else:
                             ham_count = ham_count + 1
                             ham_array.append(os.path.join(root, name))
+            # For this iteration, get numbers, and build arrays for ham and spam messages for testing.
             else:
                 for root, dirs, files in os.walk(folder_names[i], topdown=False):
                     for name in files:
@@ -91,15 +100,19 @@ def run_bayesian(parent_folder):
                             test_ham_count = ham_count + 1
                             test_ham_array.append(os.path.join(root, name))
 
+        # Add spam + ham into one training group.
         train_files = np.concatenate((spam_array, ham_array))
+        # And spam + ham into one testing group.
         test_files = np.concatenate((test_spam_array, test_ham_array))
         total = ham_count + spam_count
         test_total = test_ham_count + test_spam_count
 
         dictionary = make_dictionary(train_files)
 
+        # I think this is where I'm getting the "inconsistent number of samples" error.
+        # Trying to label the spams and hams for the confusion matrix later.
         train_labels = np.zeros(total)
-        train_labels[spam_count:total-1] = 1
+        train_labels[spam_count:total] = 1
         train_matrix = extract_features(train_files, dictionary)
 
         model1 = MultinomialNB()
