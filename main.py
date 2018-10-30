@@ -4,12 +4,11 @@ from collections import Counter
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score
-import re
 
 
 # Creates a dictionary from the emails.
 def make_dictionary(train_files):
-    # print("Entering make_dictionary..")
+
     # Put email names into emails
     emails = train_files
     all_words = []
@@ -32,7 +31,7 @@ def make_dictionary(train_files):
             del dictionary[item]
         elif len(item) == 1:
             del dictionary[item]
-    # Returns a list of the N most common words and their counts.
+    # Returns a list of the most common words and their counts.
     dictionary = dictionary.most_common(3000)
     return dictionary
 
@@ -47,25 +46,21 @@ def get_line_from_file(filename, n):
 # This is where the word occurrences are counted.
 def extract_features(file_dir, dictionary):
 
-    # print("Entering extract_features..")
-
-    # Array of filenames
+    # Array of file names
     files = file_dir
-    # Create a blank array files x dictionary
+    # Create a blank (array files x dictionary)
     features_matrix = np.zeros((len(files), len(dictionary)))
-    doc_id = 0
 
-    dictionary = [(k, v) for k, v in enumerate(dictionary)]
+    dictionary = dict([(k, v) for k, v in enumerate(dictionary)])
 
-    for fil in files:
+    for doc_id, fil in enumerate(files):
         line = get_line_from_file(fil, 2)
         words = line.split()
+        word_id = 0
         for word in words:
-            word_id = 0
             if word in dictionary:
                 word_id = dictionary[word]
                 features_matrix[doc_id, word_id] = words.count(word)
-    doc_id = doc_id + 1
 
     return features_matrix
 
@@ -78,7 +73,7 @@ def build_labels(files):
     labels_matrix = np.zeros(len(emails))
 
     for index, email in enumerate(emails):
-        labels_matrix[index] = 1 if re.search('spms*', email) else 0
+        labels_matrix[index] = 1 if 'spms' in email else 0
 
     return labels_matrix
 
