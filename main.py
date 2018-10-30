@@ -10,8 +10,10 @@ import re
 # Creates a dictionary from the emails.
 def make_dictionary(train_files):
 
+    # Put email names into emails
     emails = train_files
     all_words = []
+    # Go through emails, add all words to dictionary.
     for mail in emails:
         with open(mail) as m:
             for i, line in enumerate(m):
@@ -19,15 +21,18 @@ def make_dictionary(train_files):
                     words = line.split()
                     all_words += words
 
-    # Count up and remove duplicates.
+    # Elements stores as dictionary keys and counts stores as values.
     dictionary = Counter(all_words)
+    # Removes duplicates.
     list_to_remove = list(dictionary)
+
     for item in list_to_remove:
         # Removes puncuation etc.
         if item.isalpha() == False:
             del dictionary[item]
         elif len(item) == 1:
             del dictionary[item]
+    # Returns a list of the N most common words and their counts.
     dictionary = dictionary.most_common(3000)
     return dictionary
 
@@ -39,24 +44,24 @@ def extract_features(file_dir, dictionary):
     files = file_dir
     # Create a blank array files x dictionary
     features_matrix = np.zeros((len(files), len(dictionary)))
-    docID = 0
+    doc_id = 0
 
     for fil in files:
         # Opens a file, returns file object
         with open(fil) as fi:
-            # Enumerate iterates through and adds a counter.
+            # enumerate(): iterates through and adds a counter.
             for i, line in enumerate(fi):
                 if i == 2:
                     # Turn words in line into an array
                     words = line.split()
                     for word in words:
-                        wordID = 0
-                        # If word in this line matches our dictionary, count it up.
-                        for i, d in enumerate(dictionary):
+                        word_id = 0
+                        # If word in this line matches our dictionary, add it to feature matrix.
+                        for j, d in enumerate(dictionary):
                             if d[0] == word:
-                                wordID = i
-                                features_matrix[docID, wordID] = words.count(word)
-            docID = docID + 1
+                                word_id = j
+                                features_matrix[doc_id, word_id] = words.count(word)
+            doc_id = doc_id + 1
     return features_matrix
 
 
