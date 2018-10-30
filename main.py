@@ -9,7 +9,7 @@ import re
 
 # Creates a dictionary from the emails.
 def make_dictionary(train_files):
-
+    # print("Entering make_dictionary..")
     # Put email names into emails
     emails = train_files
     all_words = []
@@ -37,8 +37,17 @@ def make_dictionary(train_files):
     return dictionary
 
 
+def get_line_from_file(filename, n):
+    with open(filename) as file:
+        for i, line in enumerate(file):
+            if i == n:
+                return line
+
+
 # This is where the word occurrences are counted.
 def extract_features(file_dir, dictionary):
+
+    # print("Entering extract_features..")
 
     # Array of filenames
     files = file_dir
@@ -46,28 +55,24 @@ def extract_features(file_dir, dictionary):
     features_matrix = np.zeros((len(files), len(dictionary)))
     doc_id = 0
 
+    dictionary = [(k, v) for k, v in enumerate(dictionary)]
+
     for fil in files:
-        # Opens a file, returns file object
-        with open(fil) as fi:
-            # enumerate(): iterates through and adds a counter.
-            for i, line in enumerate(fi):
-                if i == 2:
-                    # Turn words in line into an array
-                    words = line.split()
-                    for word in words:
-                        word_id = 0
-                        # If word in this line matches our dictionary, add it to feature matrix.
-                        for j, d in enumerate(dictionary):
-                            if d[0] == word:
-                                word_id = j
-                                features_matrix[doc_id, word_id] = words.count(word)
-            doc_id = doc_id + 1
+        line = get_line_from_file(fil, 2)
+        words = line.split()
+        for word in words:
+            word_id = 0
+            if word in dictionary:
+                word_id = dictionary[word]
+                features_matrix[doc_id, word_id] = words.count(word)
+    doc_id = doc_id + 1
+
     return features_matrix
 
 
-def build_labels(dir):
-
-    emails = dir
+def build_labels(files):
+    # print("Entering build_labels..")
+    emails = files
     emails.sort()
 
     labels_matrix = np.zeros(len(emails))
@@ -94,44 +99,19 @@ def run_bayesian(parent_folder):
         test_dir = folder_names[i]
         train_files = []
         test_files = []
-        spam_count = 0
-        ham_count = 0
-        spam_array = []
-        ham_array = []
-        test_spam_count = 0
-        test_ham_count = 0
-        test_spam_array = []
-        test_ham_array = []
 
-        # For this iteration, get numbers, and build arrays for ham and spam messages for training.
         for j in range(len(folder_names)):
             if folder_names[j] != test_dir:
-                for root, dirs, files in os.walk(folder_names[i], topdown=False):
+                for root, dirs, files in os.walk(folder_names[j], topdown=False):
                     for name in files:
-                        if 'spmsga' in name:
-                            spam_array.append(os.path.join(root, name))
-                        else:
-                            ham_array.append(os.path.join(root, name))
-            # For this iteration, get numbers, and build arrays for ham and spam messages for testing.
+                        train_files.append(os.path.join(root, name))
             else:
-                for root, dirs, files in os.walk(folder_names[i], topdown=False):
+                for root, dirs, files in os.walk(folder_names[j], topdown=False):
                     for name in files:
-                        if 'spmsga' in name:
-                            test_spam_array.append(os.path.join(root, name))
-                        else:
-                            test_ham_array.append(os.path.join(root, name))
-
-        # Add spam + ham into one training group.
-        train_files = np.concatenate((spam_array, ham_array))
-        # And spam + ham into one testing group.
-        test_files = np.concatenate((test_spam_array, test_ham_array))
-        total = ham_count + spam_count
-        test_total = test_ham_count + test_spam_count
+                        test_files.append(os.path.join(root, name))
 
         dictionary = make_dictionary(train_files)
 
-        # I think this is where I'm getting the "inconsistent number of samples" error.
-        # Trying to label the spams and hams for the confusion matrix later.
         train_labels = build_labels(train_files)
         train_matrix = extract_features(train_files, dictionary)
 
