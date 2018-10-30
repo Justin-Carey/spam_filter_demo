@@ -1,16 +1,15 @@
 import os
 import numpy as np
-import pandas as pd
-import seaborn as sn
-import matplotlib.pyplot as plt
 from collections import Counter
-from sklearn.naive_bayes import MultinomialNB, GaussianNB, BernoulliNB
+from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score
+import re
 
 
 # Creates a dictionary from the emails.
 def make_dictionary(train_files):
+
     emails = train_files
     all_words = []
     for mail in emails:
@@ -35,22 +34,43 @@ def make_dictionary(train_files):
 
 # This is where the word occurrences are counted.
 def extract_features(file_dir, dictionary):
+
+    # Array of filenames
     files = file_dir
-    features_matrix = np.zeros((len(files), 3000))
-    doc_id = 0
+    # Create a blank array files x dictionary
+    features_matrix = np.zeros((len(files), len(dictionary)))
+    docID = 0
+
     for fil in files:
+        # Opens a file, returns file object
         with open(fil) as fi:
+            # Enumerate iterates through and adds a counter.
             for i, line in enumerate(fi):
                 if i == 2:
+                    # Turn words in line into an array
                     words = line.split()
                     for word in words:
-                        word_id = 0
-                        for j, d in enumerate(dictionary):
+                        wordID = 0
+                        # If word in this line matches our dictionary, count it up.
+                        for i, d in enumerate(dictionary):
                             if d[0] == word:
-                                word_id = j
-                                features_matrix[doc_id, word_id] = words.count(word)
-            doc_id = doc_id + 1
+                                wordID = i
+                                features_matrix[docID, wordID] = words.count(word)
+            docID = docID + 1
     return features_matrix
+
+
+def build_labels(dir):
+
+    emails = dir
+    emails.sort()
+
+    labels_matrix = np.zeros(len(emails))
+
+    for index, email in enumerate(emails):
+        labels_matrix[index] = 1 if re.search('spms*', email) else 0
+
+    return labels_matrix
 
 
 # This method will open up a parent folder and extract the emails from each part within.
@@ -84,20 +104,16 @@ def run_bayesian(parent_folder):
                 for root, dirs, files in os.walk(folder_names[i], topdown=False):
                     for name in files:
                         if 'spmsga' in name:
-                            spam_count = spam_count + 1
                             spam_array.append(os.path.join(root, name))
                         else:
-                            ham_count = ham_count + 1
                             ham_array.append(os.path.join(root, name))
             # For this iteration, get numbers, and build arrays for ham and spam messages for testing.
             else:
                 for root, dirs, files in os.walk(folder_names[i], topdown=False):
                     for name in files:
                         if 'spmsga' in name:
-                            test_spam_count = test_spam_count + 1
                             test_spam_array.append(os.path.join(root, name))
                         else:
-                            test_ham_count = ham_count + 1
                             test_ham_array.append(os.path.join(root, name))
 
         # Add spam + ham into one training group.
@@ -111,15 +127,13 @@ def run_bayesian(parent_folder):
 
         # I think this is where I'm getting the "inconsistent number of samples" error.
         # Trying to label the spams and hams for the confusion matrix later.
-        train_labels = np.zeros(total)
-        train_labels[spam_count:total] = 1
+        train_labels = build_labels(train_files)
         train_matrix = extract_features(train_files, dictionary)
 
         model1 = MultinomialNB()
         model1.fit(train_matrix, train_labels)
 
-        test_labels = np.zeros(test_total)
-        test_labels[test_spam_count:test_total] = 1
+        test_labels = build_labels(test_files)
         test_matrix = extract_features(test_files, dictionary)
 
         result1 = model1.predict(test_matrix)
