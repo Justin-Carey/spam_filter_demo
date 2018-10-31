@@ -5,8 +5,12 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score
 
+# Adjust this to select how many words are used for classification. You'll notice as your increase from 50 - 1000,
+# accuracy goes up.
+no_of_retained_words = 50
 
-# Opens an email from it's file name, returns the 3rd line in the email (where all the content is)
+
+# Opens an email from it's file name, returns the 3rd line in the email (where all the content is).
 def get_line_from_file(filename, n):
     with open(filename) as file:
         for i, line in enumerate(file):
@@ -39,33 +43,13 @@ def make_dictionary(train_files):
         elif len(item) == 1:
             del dictionary[item]
 
-    # Returns a list of the 3000 most common words and their counts.
-    dictionary = dictionary.most_common(3000)
+    # Returns a list of the most common words and their counts.
+    dictionary = dictionary.most_common(no_of_retained_words)
 
     return dictionary
 
 
-# This is where the word occurrences are counted.
-def extract_features(file_dir, dictionary):
-
-    # Array of file names
-    files = file_dir
-    # Create a blank (array files x dictionary)
-    features_matrix = np.zeros((len(files), len(dictionary)))
-
-    dictionary = dict([(d[0], i) for i, d in enumerate(dictionary)])
-
-    # Go through each email, line by line, check if the words are in the dictionary, build feature matrix.
-    for doc_id, fil in enumerate(files):
-        line = get_line_from_file(fil, 2)
-        words = line.split()
-        for word in words:
-            if word in dictionary:
-                word_id = dictionary[word]
-                features_matrix[doc_id, word_id] = words.count(word)
-    return features_matrix
-
-
+# This marks emails as "spam" (1) or "ham/legit" (0).
 def build_labels(files):
     emails = files
     emails.sort()
@@ -78,14 +62,41 @@ def build_labels(files):
     return labels_matrix
 
 
+# This is where the word occurrences are counted.
+def extract_features(files, dictionary):
+
+    # Array of file names
+    emails = files
+    # Create a blank (array files x dictionary)
+    features_matrix = np.zeros((len(emails), len(dictionary)))
+
+    # This places the "word" as the key, making it quickly searchable, and places the "index", as the value, useful
+    # later. This was necessary for performance.
+    dictionary = dict([(d[0], i) for i, d in enumerate(dictionary)])
+
+    # Go through each email, line by line, check if the words are in the dictionary, build feature matrix.
+    for doc_id, fil in enumerate(emails):
+        line = get_line_from_file(fil, 2)
+        words = line.split()
+        for word in words:
+            if word in dictionary:
+                word_id = dictionary[word]
+                # We're essentially seeing what words are common in spam emails, and non-spam emails. We're placing
+                # these observations in features_matrix.
+                features_matrix[doc_id, word_id] = words.count(word)
+    return features_matrix
+
+
 # This method will open up a parent folder and extract the emails from each part within.
 def run_bayesian(parent_folder):
     print("Running", parent_folder)
+
     folder_names = []
 
+    # Look through parent folder.
     for root, dirs, files in os.walk(parent_folder, topdown=False):
         for name in dirs:
-            # Grabs parts 1 - 10 (which will be our k fold chunks)
+            # Grabs parts 1 - 10 (which will be our k-fold chunks)
             folder_names.append(os.path.join(root, name))
 
     # With parts 1-10, cycle through 10 times, each iteration choosing a different test folder.
@@ -97,10 +108,12 @@ def run_bayesian(parent_folder):
         acc_score = []
 
         for j in range(len(folder_names)):
+            # Grab all files from train folders and put into one array.
             if folder_names[j] != test_dir:
                 for root, dirs, files in os.walk(folder_names[j], topdown=False):
                     for name in files:
                         train_files.append(os.path.join(root, name))
+            # Put all test files into one array.
             else:
                 for root, dirs, files in os.walk(folder_names[j], topdown=False):
                     for name in files:
@@ -118,12 +131,13 @@ def run_bayesian(parent_folder):
         test_matrix = extract_features(test_files, dictionary)
 
         result1 = model1.predict(test_matrix)
+
         cm = confusion_matrix(test_labels, result1)
         acc_score.append(accuracy_score(test_labels, result1) * 100)
 
         # print(cm)
 
-    print("10-fold Cross Validation Complete...")
+    print("10-fold Validation Complete...")
     print("Average accuracy: ")
     print("%.2f" % np.mean(acc_score), "%")
 
