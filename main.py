@@ -6,41 +6,43 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score
 
 
-# Creates a dictionary from the emails.
-def make_dictionary(train_files):
-
-    # Put email names into emails
-    emails = train_files
-    all_words = []
-    # Go through emails, add all words to dictionary.
-    for mail in emails:
-        with open(mail) as m:
-            for i, line in enumerate(m):
-                if i == 2:
-                    words = line.split()
-                    all_words += words
-
-    # Elements stores as dictionary keys and counts stores as values.
-    dictionary = Counter(all_words)
-    # Removes duplicates.
-    list_to_remove = list(dictionary)
-
-    for item in list_to_remove:
-        # Removes puncuation etc.
-        if item.isalpha() == False:
-            del dictionary[item]
-        elif len(item) == 1:
-            del dictionary[item]
-    # Returns a list of the most common words and their counts.
-    dictionary = dictionary.most_common(3000)
-    return dictionary
-
-
+# Opens an email from it's file name, returns the 3rd line in the email (where all the content is)
 def get_line_from_file(filename, n):
     with open(filename) as file:
         for i, line in enumerate(file):
             if i == n:
                 return line
+
+
+# Creates a dictionary from the emails.
+def make_dictionary(train_files):
+
+    emails = train_files
+    all_words = []
+
+    # Go through emails, add all words to dictionary.
+    for mail in emails:
+        line = get_line_from_file(mail, 2)
+        words = line.split()
+        all_words += words
+
+    # Elements stored as dictionary keys and counts stores as values.
+    dictionary = Counter(all_words)
+
+    # Removes duplicates.
+    list_to_remove = list(dictionary)
+
+    # Removes punctuation and single character words.
+    for item in list_to_remove:
+        if item.isalpha() is False:
+            del dictionary[item]
+        elif len(item) == 1:
+            del dictionary[item]
+
+    # Returns a list of the 3000 most common words and their counts.
+    dictionary = dictionary.most_common(3000)
+
+    return dictionary
 
 
 # This is where the word occurrences are counted.
@@ -51,22 +53,20 @@ def extract_features(file_dir, dictionary):
     # Create a blank (array files x dictionary)
     features_matrix = np.zeros((len(files), len(dictionary)))
 
-    dictionary = dict([(k, v) for k, v in enumerate(dictionary)])
+    dictionary = dict([(d[0], i) for i, d in enumerate(dictionary)])
 
+    # Go through each email, line by line, check if the words are in the dictionary, build feature matrix.
     for doc_id, fil in enumerate(files):
         line = get_line_from_file(fil, 2)
         words = line.split()
-        word_id = 0
         for word in words:
             if word in dictionary:
                 word_id = dictionary[word]
                 features_matrix[doc_id, word_id] = words.count(word)
-
     return features_matrix
 
 
 def build_labels(files):
-    # print("Entering build_labels..")
     emails = files
     emails.sort()
 
@@ -92,6 +92,7 @@ def run_bayesian(parent_folder):
     for i in range(len(folder_names)):
 
         test_dir = folder_names[i]
+        print("Iteration", i+1)
         train_files = []
         test_files = []
 
