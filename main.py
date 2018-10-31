@@ -80,7 +80,7 @@ def build_labels(files):
 
 # This method will open up a parent folder and extract the emails from each part within.
 def run_bayesian(parent_folder):
-
+    print("Running", parent_folder)
     folder_names = []
 
     for root, dirs, files in os.walk(parent_folder, topdown=False):
@@ -92,9 +92,9 @@ def run_bayesian(parent_folder):
     for i in range(len(folder_names)):
 
         test_dir = folder_names[i]
-        print("Iteration", i+1)
         train_files = []
         test_files = []
+        acc_score = []
 
         for j in range(len(folder_names)):
             if folder_names[j] != test_dir:
@@ -119,19 +119,20 @@ def run_bayesian(parent_folder):
 
         result1 = model1.predict(test_matrix)
         cm = confusion_matrix(test_labels, result1)
-        acc_score = accuracy_score(test_labels, result1)
+        acc_score.append(accuracy_score(test_labels, result1) * 100)
 
-        acc_score = acc_score * 100
+        # print(cm)
 
-        print("%.2f" % acc_score, "% accuracy")
-        print(cm)
+    print("10-fold Cross Validation Complete...")
+    print("Average accuracy: ")
+    print("%.2f" % np.mean(acc_score), "%")
 
 
 if __name__ == "__main__":
     run_bayesian('bare')
-    # run_bayesian('lemm')
-    # run_bayesian('stop')
-    # run_bayesian('lemm_stop')
+    run_bayesian('lemm')
+    run_bayesian('stop')
+    run_bayesian('lemm_stop')
 
 
 
