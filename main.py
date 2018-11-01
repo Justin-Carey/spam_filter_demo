@@ -1,13 +1,16 @@
 import os
 import numpy as np
+import matplotlib.pyplot as plt
 from collections import Counter
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
 
 # Adjust this to select how many words are used for classification. You'll notice as your increase from 50 - 1000,
 # accuracy goes up.
-no_of_retained_words = 50
+no_of_retained_words = 200
 
 
 # Opens an email from it's file name, returns the 3rd line in the email (where all the content is).
@@ -99,13 +102,16 @@ def run_bayesian(parent_folder):
             # Grabs parts 1 - 10 (which will be our k-fold chunks)
             folder_names.append(os.path.join(root, name))
 
+    acc_score = []
+    spam_prec_score = []
+    spam_recall_score = []
+
     # With parts 1-10, cycle through 10 times, each iteration choosing a different test folder.
     for i in range(len(folder_names)):
 
         test_dir = folder_names[i]
         train_files = []
         test_files = []
-        acc_score = []
 
         for j in range(len(folder_names)):
             # Grab all files from train folders and put into one array.
@@ -133,20 +139,51 @@ def run_bayesian(parent_folder):
         result1 = model1.predict(test_matrix)
 
         cm = confusion_matrix(test_labels, result1)
-        acc_score.append(accuracy_score(test_labels, result1) * 100)
+        acc_score.append(accuracy_score(test_labels, result1))
+        spam_prec_score.append(precision_score(test_labels, result1))
+        spam_recall_score.append(recall_score(test_labels, result1, pos_label=1, average='binary'))
 
-        # print(cm)
+        # print(pd.DataFrame(data=cm, columns=['Ham Predicted', 'Spam Predicted'],
+                     # index=['Ham Actual', 'Spam Actual']))
 
-    print("10-fold Validation Complete...")
-    print("Average accuracy: ")
-    print("%.2f" % np.mean(acc_score), "%")
+    avg_acc = np.mean(acc_score)
+    # avg_spam_prec = np.mean(spam_prec_score)
+    # avg_spam_rec = np.mean(spam_recall_score)
+
+    # print("10-fold Validation Complete...")
+    # print("Average accuracy: ")
+    # print("%.2f" % avg_acc, "%")
+    # print("Average spam precision: ")
+    # print("%.2f" % avg_spam_prec, "%")
+    # print("Average spam recall: ")
+    # print("%.2f" % avg_spam_rec, "%")
+
+    return spam_recall_score, spam_prec_score, avg_acc
 
 
 if __name__ == "__main__":
-    run_bayesian('bare')
-    run_bayesian('lemm')
-    run_bayesian('stop')
-    run_bayesian('lemm_stop')
+    spam_rec, spam_prec, acc = run_bayesian('bare')
+    print("Average accuracy for bare: ", acc)
+    plt.scatter(spam_rec, spam_prec, marker='o', label="no stop list, no lemmatizer")
+    spam_rec, spam_prec, acc = run_bayesian('lemm')
+    plt.scatter(spam_rec, spam_prec, marker='x', label="no stop list, lemmatizer")
+    print("Average accuracy for lemm: ", acc)
+    spam_rec, spam_prec, acc = run_bayesian('stop')
+    plt.scatter(spam_rec, spam_prec, marker='+', label="stop list, no lemmatizer")
+    print("Average accuracy for stop: ", acc)
+    spam_rec, spam_prec, acc = run_bayesian('lemm_stop')
+    plt.scatter(spam_rec, spam_prec, marker='^', label="stop list, lemmatizer")
+    print("Average accuracy for lemm_stop: ", acc)
+
+    plt.xlim([0.6, 1.0])
+    plt.ylim([0.6, 1.0])
+    plt.xlabel("spam recall")
+    plt.ylabel("spam precision")
+    plt.legend(loc='lower left', fontsize="small")
+    plt.show()
+
+# Spam recall: spam as spam / (spam as spam + spam as legit) spam message pass the filter, higher = less false negatives
+# Spam precision: spam as spam / (spam as spam + legit as spam) we lose legit message, higher = less false positives
 
 
 
