@@ -143,9 +143,6 @@ def run_bayesian(parent_folder):
         spam_prec_score.append(precision_score(test_labels, result1))
         spam_recall_score.append(recall_score(test_labels, result1, pos_label=1, average='binary'))
 
-        # print(pd.DataFrame(data=cm, columns=['Ham Predicted', 'Spam Predicted'],
-                     # index=['Ham Actual', 'Spam Actual']))
-
     avg_acc = np.mean(acc_score)
     # avg_spam_prec = np.mean(spam_prec_score)
     # avg_spam_rec = np.mean(spam_recall_score)
