@@ -1,1 +1,6 @@
-Simple spam filter demo. Created in an attempt to replicate the findings of "https://www.researchgate.net/publication/220482991_An_Evaluation_of_Naive_Bayesian_Anti-Spam_Filtering"
+# Naive Baysian Spam Filter
+
+Implemented in Python, this filter utilizes Naive Baysian Probability to determine if an email is 'ham'(legit) or 'spam'. The model is trained on both ham and spam emails, so it knows common words belonging to either. After training, new emails are classified as 'ham' or 'spam' based upon the words they contain.
+
+This demo was created as a fun attempt to recreate the findings of "https://www.researchgate.net/publication/220482991_An_Evaluation_of_Naive_Bayesian_Anti-Spam_Filtering"
+
