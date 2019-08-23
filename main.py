@@ -9,7 +9,7 @@ from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
 
 # Adjust this to select how many words are used for classification. You'll notice as your increase from 50 - 1000,
-# accuracy goes up.
+# accuracy goes up, however, so does the runtime.
 no_of_retained_words = 200
 
 
